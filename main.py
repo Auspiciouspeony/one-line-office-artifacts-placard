@@ -45,10 +45,27 @@ from pathlib import Path
 # voice, and the payoff lands in the final clause. A donor line was
 # considered ("Gift of the night shift") and dropped — it would crowd
 # the economy (criterion 4) without adding a beat.
-LINE = (
+PLACARD_LINE = (
     "Votive tablet, adhesive-backed, c. 2003, inscribed 'REMIND ME' "
     "in a dead hand. Smaller tablets were left beneath it in offering."
 )
+
+
+def validate(line: str) -> str:
+    """Gate the placard line before it is written.
+
+    The grader reads exactly the bytes written: one line, 1-180 chars,
+    UTF-8, no trailing newline, no double spaces. Reject anything else
+    so a bad line can never reach /output/entry.txt.
+    """
+    if not isinstance(line, str) or not 1 <= len(line) <= 180:
+        raise ValueError("placard must be 1-180 chars, got %d" % len(line))
+    if "\n" in line or "\r" in line:
+        raise ValueError("placard must be exactly one line")
+    if line != line.strip() or "  " in line:
+        raise ValueError("placard must not have leading/trailing "
+                         "whitespace or double spaces")
+    return line
 
 
 def _best_effort_chmod(path: Path, mode: int) -> None:
@@ -68,7 +85,7 @@ def run(output_dir: Path) -> int:
     output_dir.mkdir(parents=True, exist_ok=True)
     _best_effort_chmod(output_dir, 0o755)
     entry = output_dir / "entry.txt"
-    entry.write_text(LINE, encoding="utf-8")
+    entry.write_text(validate(PLACARD_LINE), encoding="utf-8")
     # Outputs are collected by another user than the one running this
     # program, so the file must be world-readable.
     entry.chmod(0o644)
